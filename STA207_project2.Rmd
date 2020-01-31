@@ -1,0 +1,274 @@
+---
+title: "Effects of Class Type and School on Teaching Achievement in the Grade 1 Math Score"
+output:
+  pdf_document: default
+  fontsize: 8pt
+  html_document:
+    df_print: paged
+    fig_caption: yes
+    number_sections: yes
+---
+<style type="text/css">
+
+body{ /* Normal  */
+      font-size: 18px;
+  }
+
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE,message=FALSE,warning=FALSE)
+```
+
+
+Team ID: 3
+
+Name (writing): Kieran Zhou
+
+Name (writing): Liela Meng
+
+Name (coding): Yunan Hou
+
+Name (coding): Zhen Li
+
+Github repo link:https://github.com/zhnli007/STA207_project.git
+
+```{r,includ=F}
+library(foreign)
+STAR_full<-read.spss("STAR_Students.sav",to.data.frame = TRUE)
+```
+# 1.Introduction 
+
+  In order to explore the diverse effects on education, a four-year longitudinal study called Student/Teacher Achievement Ratio (STAR) was conducted by the State Department of Education (Achilles, 2008). Around 6600 students and 339 teachers were randomly assigned to three different class types for first-year students: small class, regular class, and regular-with-aide class. We use teachers as the unit to investigate the math scale score of the first-grade students and determine whether there is a difference in their math scores across different class types in different schools. In this paper, teaching achievement is measured by the median of math scores of students taught by each teacher.
+  
+  In Section 2, we describe the summary statistics and propose the hypothesis. In order to test our hypothesis, a two-way ANOVA model is set with class types as one factor and school indicator as another in this section. This section also gives the result of model fitting and model diagnostics. Section 3 provides the conclusion and discuss the possible future work.
+  
+  There is evidence that different class type affects math scores of the first grade student in previous work. In this paper, the main subject we investigate is the teaching achievement, and we find that class type and school both affect teachers’ teaching achievement.
+
+
+# 2.Data analysis
+## Analysis plan
+
+### Exploratory data analysis
+
+We firstly check the distribution of students’ math scores among each teacher and find all teachers approximately have similar level students (Figure 1), which is consistent with the design of the experiment that all students are randomly assigned. We can take this as there is no obvious pattern violating the randomness.
+
+The pie chart (Figure 2) shows that the number of students in each class type is similar; hence design is approximately balanced.
+
+There are from 11 to 24 students randomly assigned to each teacher, to intuitively analyze the impact of class types and schools. Thus, we use the median of math scores of first-grade students taught by each teacher to represent the particular class of students' math scores when taking teachers as units. Also, considering the extremely large or small scores may not attribute to teachers, the median can be a better indicator comparing with mean. 
+
+Figure 3 and figure 4 provides the box-plot of median math scores’ distribution grouped by class type and school ID, respectively. In Figure 3, we can see that the median of math scores tend to be higher in small classes and lower math scores in regular class without aides. In Figure 4, generally, we can see that students have similar median math scores in different schools, but there are still several schools showing lower math scores than other schools.
+
+
+```{r,echo=F, fig.height=3 , fig.width=10}
+library(knitr)
+library(stats)
+#1st scaled math score
+#STAR_full$g1tmathss
+#1st teacher
+#STAR_full$g1tchid
+
+
+data0<-STAR_full[c("g1tchid","g1tmathss")]
+data<-na.omit(data0)
+data1<-STAR_full[c("g1tchid","g1tmathss","g1classtype","g1schid")]
+data<-na.omit(data1)
+levels(data$g1classtype)<-c("small","regular","aide")
+data_new<-aggregate(g1tmathss~g1tchid+g1classtype+g1schid,data=data,median)#use median
+
+par(mfrow=c(1,2))
+
+label<-paste(c("regular","small","regular+aide"),round(100*table(data_new$g1classtype)/339),"%",sep=" ")
+
+plot(as.factor(data$g1tchid), data$g1tmathss,cex=0.1,cex.axis=0.5, las=2,xlab="teacher ID",ylab="math scores",main="Figure 1: Teacher ID vs. math scores",cex.main=1)
+
+pie(table(data_new$g1classtype),label=label,main="Figure 2: Distribution of class types",cex.main=1)
+```
+
+```{r,echo=F}
+
+aggregate(g1tmathss~g1tchid,data=data, median)->test #median of math score (teacher as unit)
+colnames(test)<-c("teacher_ID","1st_math_score")
+test$teacher_ID<-as.factor(test$teacher_ID)
+
+```
+
+```{r, fig.height=3 , fig.width=10}
+
+# factor(class type): piechart
+par(mfrow=c(1,2))
+#boxplot
+boxplot(g1tmathss~g1classtype,data=data_new,main="Figure 3: Boxplot of median math scores grouped by class types",ylab="median math score",xlab="class type",cex.main=1)
+boxplot(g1tmathss~g1schid,data=data_new,main="Figure 4: Boxplot of median math scores grouped by school id", ylab="median math score",xlab="school ID",cex.main=1,las=2,cex=0.1,cex.axis=0.5)
+```
+
+### Model
+
+As class type and school are two independent categorical variables, we consider a two-way ANOVA model to assess the effect of two variables and check whether there is interaction between class type and school.
+
+Two-way ANOVA Model:
+
+* $Y_{ijk}=\mu_{ij}=\mu +\alpha_i+\beta_j+\gamma_{ij}+\varepsilon_{ijk}$, $\varepsilon_{ijk}\overset{iid}{\sim} N(0,\sigma^2)$
+
+* $i=1,2,3$ denote three different class types; $j=1,2,3,\dots,76$ denote 76 differnt schools; $k=1,2,\dots,n_{ij}$ denote  the number of teachers in class type$i$ of school $j$. ($n_{ij}$ denote the number of teachers in class type $i$ of school $j$, $\sum n_{ij}=339$.)
+
+* $Y_{ijk}$ denote the median of students' total math score for each teacher.
+
+
+* $\gamma_{ij}$ denote interaction between class type $i$ and school $j$.
+
+* $\mu$ denote the mean of all total math scores for 339 teachers.
+
+* $\alpha_i$ denote additive main effect of level $i$ from factor of 3 class type; $\beta_j$ denote additive main effect of level $j$ from factor of 76 schools.
+
+###  Hypothesis
+
+  To determine whether there is a difference in first-grade students’ math scores across teachers in different class types and different schools, we propose three hypotheses.
+  
+* Hypothesis 1: class types does not affect median math scores. The corresponding null and alternative hypotheses are:
+
+    $H_0:\alpha_1=\alpha_2=\alpha_3=0 \  vs.\ H_a: not \ all\ \alpha_i \ equal \ to\  0\ (i=1,2,3).$ 
+
+* Hypothesis 2: school does not affect median math scores. The corresponding null and alternative hypotheses are:
+
+    $H_0:\beta_1=\beta_2=\dots=\beta_{76}=0 \  vs.\ H_a: not \ all\ \beta_j \ equal \ to\  0\ (j=1,2,\dots,76).$ 
+
+* Hypothesis 3: there is no interaction between class type and school.
+
+    $H_0:\gamma_{ij}=0\ \  vs.H_a:\ not \ all \ \gamma_{ij} \ equal\ to\ 0.\ (i=1,2,3; \ j=1,2,3,\dots,76).$ 
+        
+To test these three hypotheses, we set a two-way ANOVA model with class type and school as two variables and their interaction term with significant level $\alpha$ at 0.05.
+
+## Analysis result
+
+### Model fitting result 
+According to table 1, there is significant evidence showing that students’ math scores are affected by different class types (P-value < 0.001), and there is also significant evidence showing that the students’ math scores are affected by different schools (P-value < 0.001). Table 1 also indicates that there is no significant interaction between class type and school (P-value = 0.3725).
+
+**Table 1** (ANOVA of Initial model)
+
+| Source | Degrees of freedom | Sum of Squares | Mean Squares | F value | p-value |
+|-----------------------------------|--------------------|----------------|--------------|---------|-----------|
+| Factor Class Type | 2 | 11014 | 5507.1 | 18.2658 | 1.292e-07 ***|
+| Factor School ID | 75 | 149370 | 1991.6 | 6.6057 | <2.2e-16 ***|
+| Factor Class Type: School ID | 146 | 46682 | 319.7 | 1.0605 | 0.3725 |
+| Error | 115 | 34672 | 301.5 |  |  |
+
+
+```{r, include=F}
+data0<-STAR_full[c("g1tchid","g1tmathss","g1classtype","g1schid")]
+data<-na.omit(data0)
+levels(data$g1classtype)<-c("small","regular","aide")
+data_new<-aggregate(g1tmathss~g1tchid+g1classtype+g1schid,data=data,median)
+full_model=lm(g1tmathss~as.factor(g1classtype)+as.factor(g1schid)+as.factor(g1classtype)*as.factor(g1schid),data=data_new)
+reduced_model=lm(g1tmathss~as.factor(g1classtype)+as.factor(g1schid),data=data_new)
+anova(reduced_model,full_model)
+anova(full_model) #interaction isn't significant
+anova(reduced_model)
+#ANOVA TABLE(miss)
+```
+Hence, we drop the interaction term and declare our model as follows.
+
+  $Y_{ijk}=\mu_{ij}=\mu +\alpha_i+\beta_j+\varepsilon_{ijk}$, $\varepsilon_{ijk}\overset{iid}{\sim} N(0,\sigma^2)$
+  
+**Table 2** (ANOVA of Final model)
+
+| Source | Degrees of freedom | Sum of Squares | Mean Squares | F value | p-value |
+|------------------|--------------------|----------------|--------------|---------|--------------|
+| Factor Class Type | 2 | 11014 | 5507.1 | 17.6678 | 6.36e-08 *** |
+| Factor School ID | 75 | 149370 | 1991.6 | 6.3895 | <2e-16 *** |
+| Error | 261 | 81354 | 311.7 |  |  |
+
+### Assumption satisfaction
+
+In order to verify the validity of this model, we successively check the assumptions of the two-way ANOVA model as well. 
+
+* Normality 
+
+From figure 5,6, we can see that residuals are approximately normally distributed. 
+
+```{r,fig.height=3 , fig.width=10}
+anova.fit<-aov(g1tmathss~as.factor(g1classtype)+as.factor(g1schid),data=data_new)
+library(rcompanion)
+resid<-anova.fit$residuals
+par(mfrow=c(1,2))
+plotNormalHistogram(resid,main="Figure 5: Histogram of residuals",cex.main=1)
+plot(anova.fit,which=2,main="Figure 6: QQ polt of residuals",cex.mian=1)
+```
+
+* Independence
+
+According to the Chi-square test result (Table 3), the independence assumption is not violated. 
+
+**Table3** (Chi-square test result)
+
+```{r,include=F}
+x<-data_new[,c(2,3)]
+x$g1classtype<-as.numeric(x$g1classtype)
+chisq.test(x)
+```
+
+| Pearson's Chi-square test |                   |         |
+|---------------------------|-------------------|---------|
+| X-squared                 | degree of freedom | p-value |
+| 150.39                    | 338               | 1       |
+
+
+* Equal variance
+
+Considering that most cells have only one observation, checking variance is not meaningful for now. However, it still requires further investigation when more data are available.
+```{r,include=F}
+# equal variance
+library(car)
+leveneTest(g1tmathss~as.factor(g1classtype)*as.factor(g1schid),data=data_new)
+```
+
+### Confidence level
+To verify the result of the ANOVA table (Table 2), we also sketch the confidence interval at a significant level 0.05 for class-type and schools. We can see that there is a significant difference in math scores between regular classes and small class (Figure 7). From figure 7, we also observe that there may be no significant difference comparing different schools. To check the conflict between the result of the ANOVA table and the confidence interval plot, we also apply Tukey's "Honest Significant Difference"(HSD) method and conclude that between different schools, 255 pairs are showing noticeable difference in math scores. We exhibit 5 pairs out of 255 in table 4.
+
+
+```{r,fig.height=3 , fig.width=10}
+alpha=0.05
+data_new$Classtype<-as.factor(data_new$g1classtype)
+data_new$Schoolid<-as.factor(data_new$g1schid)
+```
+
+**Figure 7: TukeyHSD Confidence Interval**
+
+```{r,fig.height=3 , fig.width=10}
+anova.fit<-aov(g1tmathss~Classtype+Schoolid,data=data_new)
+par(mfrow=c(1,2))
+T.ci=TukeyHSD(anova.fit,conf.level = 1-alpha)
+T.ci$`as.factor(g1schid)`->test
+# test[test[,4]<=0.05,]
+plot(T.ci, cex.axis=0.5,cex.lab=1,las=1 , col="pink")
+```
+
+
+
+**Table 4** (Confidence interval for TukeyHSD)
+
+| Pairwise School | Difference | Lower Bound | Upper Bound | p-value      |
+|-----------------|------------|-------------|-------------|--------------|
+| 130085-112038   | 58.43      | 1.26        | 115.60      | 3.591520e-02 |
+| 161183-112038   | 73.17      | 20.24       | 126.10      | 3.686809e-05 |
+| 162184-112038   | 60.09      | 2.92        | 117.26      | 2.275433e-02 |
+| 165199-112038   | 87.83      | 26.71       | 148.95      | 1.073538e-05 |
+| 168214-112038   | 78.83      | 17.71       | 139.95      | 2.686467e-04 |
+
+# 3.Discussion
+
+* Effects of class types and school on teaching achievement
+
+In this paper, we analyze the impact of class type and school on math scores of first-grade students taught by different teachers. The result indicates that both class type and school have significantly statistical effects on students’ math scores, and there is no significant evidence that the interaction of class type and school affects math scores as well. Notably, we can see that students in small classes tend to have higher math scores, which means teacher has better teaching achievement. And students in the school with ID 168214 have the highest math scores (median = 619.5) in this study.
+
+* Causal inference
+
+As the study is designed with random assignment that both teachers and students are randomly assigned, it implies no spillover effect and ignorability of treatment assignment. Also, once a student is assigned to a class type, s/he would receive education of consistent class-type. Thus, the causal inference assumptions are not violated. Hence we can also conclude that different class types and different schools are causes of students’ different math scores.
+
+* Problems for further investigation
+
+Although we provides the statistical evidence showing the impact of class type and school, there are still some possible problems that we can consider in the future work. We use the median of students’ math scores as the response variable to represent the teaching achievement of each teacher. Considering the extremely large or small scores may not attribute to teachers, median can be a better indicator comparing with mean. We should note that there is no significant interaction effect in this paper, we may also further consider the interaction term in the future.
+
+# 4.Reference
+
+C. M. Achilles et al., (2008), Tennessee’s Student Teacher Achievement Ratio (STAR) project, Harvard Dataverse, doi.org/10.7910/DVN/SIWH9F
